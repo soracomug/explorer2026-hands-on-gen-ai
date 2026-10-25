@@ -6,6 +6,8 @@ title: 生成AI × SORACOM ハンズオン
 
 Claude Code や Kiro CLI などの生成AIエージェントから SORACOM を操作し、「ドキュメントを調べる → 自分のアカウントを見る・変える → データを分析する」までを一通り体験します。
 
+このドキュメントに載っている生成AIへの依頼内容は、あくまで一例です。言い回しや条件を変えて、いろいろ試してみましょう。
+
 **ゴール**
 
 - SORACOM Knowledge MCP サーバーを生成AIに接続し、公式ドキュメントに基づいた回答を得られる
@@ -30,7 +32,8 @@ Claude Code や Kiro CLI などの生成AIエージェントから SORACOM を�
 - SORACOM アカウント（ユーザーコンソールにログインできること）
 - 生成AIクライアント：Claude Code または Kiro CLI のいずれか
 - Node.js v22 以上（STEP 2 の SORACOM MCP Server を npx で起動するため）
-- STEP 3 用：運営が配布するデータファイル（当日配布）と SORACOM CLI。Appendix のみ GPS マルチユニット SORACOM Edition を使用
+- SORACOM CLI（2-2 でインストールします）
+- STEP 3 用：運営が配布するデータファイル（当日配布）。Appendix のみ GPS マルチユニット SORACOM Edition を使用
 
 ### 生成AIのプランについて（推奨）
 
@@ -82,7 +85,7 @@ SORACOM MCP Server（Early Access）を使うと、生成AIから SORACOM API �
 ### 2-1. 認証キーを用意する（SAM ユーザー推奨）
 
 1. ユーザーコンソールで、ハンズオン用の SAM ユーザーを作成します。（参考：[SAM ユーザーを作成する](https://users.soracom.io/ja-jp/docs/sam/create-sam-user/)）
-2. 必要な API だけを許可した権限を付与します（参照系＋STEP 2-4 で使う変更系＋STEP 3 で使う FileEntry:putFile / listFiles / getFile / deleteFile / deleteDirectory）。（参考：[SAM ユーザーの権限を設定する](https://users.soracom.io/ja-jp/docs/sam/set-permissions/)。権限を変更した場合は API キーと API トークンの再発行が必要です）
+2. 必要な API だけを許可した権限を付与します（参照系＋STEP 2-4 で使う変更系＋STEP 3 で使う FileEntry:putFile / listFiles / getFile / deleteFile / deleteDirectory＋Appendix で使う SoracomAir への書き込みと DataEntry:getDataEntries）。（参考：[SAM ユーザーの権限を設定する](https://users.soracom.io/ja-jp/docs/sam/set-permissions/)。権限を変更した場合は API キーと API トークンの再発行が必要です）
 3. SAM ユーザーの認証キー（AuthKey ID / AuthKey）を発行します。（参考：[認証キーを生成する](https://users.soracom.io/ja-jp/docs/sam/create-sam-user/#%E8%AA%8D%E8%A8%BC%E3%82%AD%E3%83%BC%E3%82%92%E7%94%9F%E6%88%90%E3%81%99%E3%82%8B)）
 
 ルートユーザーの認証キーは使わないでください。ハンズオン終了後は認証キーを削除します。（参考：[ルートユーザーの認証情報を管理する](https://users.soracom.io/ja-jp/guides/basic-knowledge/manage-root-user-credentials/)、[SAM ユーザーの認証キーの削除](https://users.soracom.io/ja-jp/docs/sam/create-sam-user/#%E8%AA%8D%E8%A8%BC%E3%82%AD%E3%83%BC%E3%82%92%E7%94%9F%E6%88%90%E3%81%99%E3%82%8B)）
@@ -118,6 +121,7 @@ SORACOM MCP Server（Early Access）を使うと、生成AIから SORACOM API �
       "api": [
         "Sim:putSimTags",
         "Sim:setSimGroup",
+        "Sim:unsetSimGroup",
         "Group:createGroup"
       ]
     },
@@ -127,6 +131,13 @@ SORACOM MCP Server（Early Access）を使うと、生成AIから SORACOM API �
         "Group:putConfigurationParameters"
       ],
       "condition": "pathVariable('namespace') == 'SoracomHarvest'"
+    },
+    {
+      "effect": "allow",
+      "api": [
+        "Group:putConfigurationParameters"
+      ],
+      "condition": "pathVariable('namespace') == 'SoracomAir'"
     },
     {
       "effect": "allow",
@@ -150,7 +161,7 @@ SORACOM MCP Server（Early Access）を使うと、生成AIから SORACOM API �
 }
 ```
 
-速度クラスの変更、SIM の解約・休止、他サービスのグループ設定など、課金や復旧に影響する操作は許可していません。
+速度クラスの変更、SIM の解約・休止、他サービスのグループ設定など、課金や復旧に影響する操作は許可していません。グループ設定の変更は、Harvest Data の有効化（SoracomHarvest）と、GPS マルチユニットの動作モードの保存先（SoracomAir）に限っています。
 
 ### 2-2. SORACOM CLI と SORACOM MCP Server を設定する
 
@@ -246,6 +257,8 @@ Kiro CLI の場合は、MCP 設定ファイル（例：`~/.kiro/settings/mcp.jso
 
 変更後、ユーザーコンソールや STEP 2-3 の参照で結果を確認しましょう。
 
+> **注意：** SIM の所属グループを変えると、元のグループの設定（Harvest Data、Beam、GPS マルチユニットの動作モードなど）は適用されなくなります。ふだん使っている SIM で試す場合は、変更前の名前と所属グループを控えておき、後片付けで元に戻しましょう。なお、速度クラスの変更など、2-1 のポリシーで許可していない操作を依頼すると権限エラーになります。
+
 ## STEP 3：SORACOM Harvest Files にデータを入れて分析してみる
 
 ### 3-1. 配布データを準備する
@@ -280,7 +293,7 @@ soracom files list --scope private --path /handson/ --profile handson
 生成AIが実行するコマンドの例：
 
 ```bash
-soracom files get --scope private --path /handson/<配布ファイル名> --profile handson > <配布ファイル名>
+soracom files get --scope private --path /handson/<配布ファイル名> --profile handson > downloaded-<配布ファイル名>
 ```
 
 分析の依頼例：
@@ -310,15 +323,92 @@ soracom files list --scope private --path / --profile handson
 
 > **注意：** 削除したファイルは元に戻せません。生成AIが提示したコマンドの対象パスを確認してから承認しましょう。削除後は、ユーザーコンソールの [SORACOM Harvest Files] 画面でもファイルが消えていることを確認します。作業フォルダに取得したファイルも、不要であれば削除します。
 
-## Appendix：GPS マルチユニットを設定してみよう
+## Appendix：GPS マルチユニットを生成AIで設定・分析してみよう
 
-GPS マルチユニット SORACOM Edition は、位置情報（GPS）・温度・湿度・加速度センサーとバッテリーを内蔵したデバイスです。動作モードはユーザーコンソールで設定し、デバイスにダウンロードして反映します。
+GPS マルチユニット SORACOM Edition（以下、GPS マルチユニット）は、位置情報（GPS）・温度・湿度・加速度センサーとバッテリーを内蔵したデバイスです。GPS マルチユニットをお持ちの方向けの内容です。
 
-1. ユーザーコンソールの GPS マルチユニット設定画面で、SIM を選択して新規グループ（例：「GPSマルチユニット」）を作成します。
-2. 送信内容（位置情報・温度・湿度・加速度）、送信先（Harvest Data）、送信モード・送信間隔を設定して保存します。
-3. 本体のファンクションボタンを1秒押して、設定を本体に反映させます（同時にデータが送信されます）。
-4. Harvest Data でデータを確認します。緯度・経度があれば地図表示もできます。
-5. 生成AIに Harvest Data のデータを取得させ、STEP 3-3 と同じ要領で位置データや温度データを分析させてみましょう。
+GPS マルチユニットの動作モード（送信内容や送信間隔など）は、SIM が所属するグループの SORACOM Air for セルラー設定（userdata）に JSON で保存されています。この JSON を生成AIに読み書きさせて、設定を変更してみます。
+
+### A-1. GPS マルチユニットがあるか確認する
+
+GPS マルチユニットとして登録した SIM には、タグ `soracom.gadgets`（値：`GPS-Multiunit`）が付いています。
+
+依頼の例：
+
+- 「タグの値が GPS-Multiunit の SIM を探して、SIM ID・IMSI・名前・所属グループを表にして」
+
+見つからない場合は、ユーザーコンソールの [メニュー] → [ガジェット管理] → [GPS マルチユニット] で一度登録してください（参考：[動作モードを SORACOM ユーザーコンソールで設定する](https://users.soracom.io/ja-jp/guides/iot-devices/gps-multiunit/setting-mode-on-console/)）。
+
+### A-2. Knowledge MCP で設定 JSON の仕様を確認する
+
+依頼の例：
+
+- 「GPS マルチユニットの動作モードを SORACOM CLI で設定する方法と、userdata の JSON の仕様を SORACOM のドキュメントで調べて。送信間隔はどこで指定する？」
+
+「[SORACOM CLI / SORACOM API で動作モードを設定する](https://users.soracom.io/ja-jp/guides/iot-devices/gps-multiunit/configure-with-cli/)」のページが参照されれば OK です。定期送信 - 手動モードの送信間隔は、`Common.C5` の 6 番目の要素（インデックス 5）に 1〜1440（分）で指定します。
+
+### A-3. 現在の設定値をローカルに保存する
+
+依頼の例：
+
+- 「GPS マルチユニットの SIM が所属するグループの設定を取得して、SORACOM Air for セルラー設定の userdata を gps-config-before.json に保存して。中身も説明して」
+
+生成AIが実行するコマンドの例：
+
+```bash
+soracom groups get --group-id <グループID> --profile handson
+```
+
+取得した結果の `configuration.SoracomAir` に `userdata` が含まれます。`gps-config-before.json` は、後片付けで元の設定に戻すときにも使います。
+
+### A-4. 送信間隔などを変えてみる
+
+依頼の例：
+
+- 「gps-config-before.json をコピーして gps-config-after.json を作り、定期送信の送信間隔を 5 分に変えて。変更前後の差分も見せて」
+
+> **注意：** ユーザーコンソールで設定できる範囲を超える値は指定しないでください。GPS マルチユニットが正常に動作しなくなることがあります。シナリオ 0〜3 の値と、C7 の組み合わせは変えないようにしましょう。
+
+### A-5. 設定を反映する
+
+依頼の例：
+
+- 「gps-config-after.json の内容を、そのグループの SORACOM Air for セルラー設定の userdata に反映して。metadata の設定は変えないで」
+
+生成AIが実行するコマンドの例：
+
+```bash
+soracom groups put-config --group-id <グループID> --namespace SoracomAir --body @put-body.json --profile handson
+```
+
+`put-body.json` は、`[{"key": "userdata", "value": <gps-config-after.json の内容>}]` の形式のファイルです（生成AIに作らせます）。
+
+グループに保存しただけでは、本体には反映されません。GPS マルチユニットのファンクションボタンを 1 秒押して、設定を本体にダウンロードします（同時にデータが送信されます）。
+
+### A-6. 設定値を再確認する
+
+依頼の例：
+
+- 「もう一度グループの設定を取得して、userdata が gps-config-after.json と一致しているか確認して」
+
+しばらく待ってから A-7 でデータを取得すると、送信間隔が変わったことも確認できます。
+
+### A-7. GPS マルチユニットのデータを生成AIに分析させる
+
+GPS マルチユニットのデータは、送信先で Harvest Data を有効にしていれば Harvest Data に保存されています。生成AIに取得させて分析します（参考：[送信されるデータフォーマット](https://users.soracom.io/ja-jp/guides/iot-devices/gps-multiunit/format/)）。
+
+生成AIが実行するコマンドの例：
+
+```bash
+soracom data get-entries --resource-type Subscriber --resource-id <IMSI> --limit 1000 --profile handson > gps-data.json
+```
+
+分析の依頼例：
+
+- 「GPS マルチユニットの直近 24 時間の Harvest Data を取得して gps-data.json に保存し、データの概要を教えて」
+- 「位置情報を地図上にプロットした HTML を作って。lat / lon が null のデータは除いて」
+- 「温度・湿度・バッテリー残量の推移をグラフにして」
+- 「A-5 で設定を変えた前後で、送信間隔が実際に変わったか確認して」
 
 **ポイント**
 
@@ -326,13 +416,13 @@ GPS マルチユニット SORACOM Edition は、位置情報（GPS）・温度�
 - GPS が取得しにくい屋内では、lat / lon が null になったり、送信間隔が延びたりします。窓際での実施がおすすめです。
 - データ通信（上り・設定取得の下り）はすべて課金対象です。
 
-発展：生成AIに「GPS マルチユニットの送信間隔を5分に変えたい。手順を Knowledge MCP で調べて教えて」と聞いてみましょう。
-
 ## 後片付け
 
 - ハンズオン用 SAM ユーザーの認証キーを削除する（参考：[API キーと API トークンを無効化する](https://users.soracom.io/ja-jp/tools/api/key-and-token/#api-%E3%82%AD%E3%83%BC%E3%81%A8-api-%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E3%82%92%E7%84%A1%E5%8A%B9%E5%8C%96%E3%81%99%E3%82%8B)）
-- Harvest Files にアップロードした配布ファイルを削除する（STEP 3-4 参照。Appendix を実施した場合は、SIM グループの Harvest Data を無効化する）
-- GPS マルチユニットの送信間隔を長くする、または電源を切る
+- Harvest Files にアップロードした配布ファイルを削除する（STEP 3-4 参照）
+- 2-4 で変更した SIM の名前と所属グループを元に戻す
+- 2-4 で作成した「SORACOM UG Handson」グループの Harvest Data を無効化する（グループが不要な場合は、ユーザーコンソールから削除します）
+- GPS マルチユニットの動作モードを元に戻す（A-3 で保存した `gps-config-before.json` を生成AIに反映させる）か、電源を切る
 - 生成AIクライアントの MCP 設定から認証情報を削除する
 
 ## 参考リンク
@@ -343,3 +433,4 @@ GPS マルチユニット SORACOM Edition は、位置情報（GPS）・温度�
 - [SORACOM Harvest Files にファイルをアップロードする](https://users.soracom.io/ja-jp/docs/harvest/send-files/)
 - [Harvest Data にデータを蓄積する](https://users.soracom.io/ja-jp/guides/getting-started/send-data-to-harvest-data/)
 - [GPS マルチユニット：動作モードをユーザーコンソールで設定する](https://users.soracom.io/ja-jp/guides/iot-devices/gps-multiunit/setting-mode-on-console/)
+- [GPS マルチユニット：SORACOM CLI / SORACOM API で動作モードを設定する](https://users.soracom.io/ja-jp/guides/iot-devices/gps-multiunit/configure-with-cli/)
