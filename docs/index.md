@@ -173,6 +173,7 @@ macOS / Linux（Homebrew を利用）：
 
 ```bash
 brew tap soracom/soracom-cli
+brew trust soracom/soracom-cli
 brew install soracom-cli
 ```
 
