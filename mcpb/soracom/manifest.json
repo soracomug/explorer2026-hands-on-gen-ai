@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-latest.schema.json",
+  "manifest_version": "0.3",
+  "name": "soracom-handson",
+  "display_name": "SORACOM MCP Server (ハンズオン用)",
+  "version": "0.1.0",
+  "description": "SORACOM CLI のプロファイルの認証情報で SORACOM MCP Server を起動します",
+  "long_description": "SORACOM UG ハンズオン用のバンドルです。SORACOM MCP Server（@soracom-labs/soracom-mcp-server）を npx で起動し、SORACOM CLI のプロファイル（既定：handson）に保存した認証キーとカバレッジタイプを使います。事前に `soracom configure --profile handson` でプロファイルを作成し、Node.js v22 以上をインストールしておく必要があります。",
+  "author": {
+    "name": "SORACOM UG"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soracomug/explorer2026-hands-on-gen-ai"
+  },
+  "homepage": "https://github.com/soracom-labs/soracom-mcp-server",
+  "server": {
+    "type": "node",
+    "entry_point": "@soracom-labs/soracom-mcp-server",
+    "mcp_config": {
+      "command": "npx",
+      "args": ["-y", "@soracom-labs/soracom-mcp-server@0.1.1"],
+      "env": {
+        "SORACOM_PROFILE": "${user_config.profile}"
+      },
+      "platform_overrides": {
+        "win32": {
+          "command": "cmd",
+          "args": ["/c", "npx", "-y", "@soracom-labs/soracom-mcp-server@0.1.1"]
+        }
+      }
+    }
+  },
+  "user_config": {
+    "profile": {
+      "type": "string",
+      "title": "SORACOM CLI プロファイル名",
+      "description": "soracom configure --profile で作成したプロファイル名（~/.soracom/<名前>.json）",
+      "default": "handson",
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"]
+  },
+  "license": "MIT"
+}
