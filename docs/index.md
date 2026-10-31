@@ -30,7 +30,7 @@ Claude Code や Kiro CLI などの生成AIエージェントから SORACOM を�
 
 - PC（macOS / Windows / Linux）とインターネット接続
 - SORACOM アカウント（ユーザーコンソールにログインできること）
-- 生成AIクライアント：Claude Code または Kiro CLI のいずれか
+- 生成AIクライアント：Claude Code、Kiro CLI、Claude Desktop のいずれか（Claude Desktop は STEP 2 の SORACOM MCP Server を .mcpb でインストールします）
 - Node.js v22 以上（STEP 2 の SORACOM MCP Server を npx で起動するため）
 - SORACOM CLI（2-2 でインストールします）
 - STEP 3 用：運営が配布するデータファイル（当日配布）。Appendix のみ GPS マルチユニット SORACOM Edition を使用
@@ -233,6 +233,8 @@ Kiro CLI の場合は、MCP 設定ファイル（例：`~/.kiro/settings/mcp.jso
   }
 }
 ```
+
+Claude Desktop の場合（Claude Code が使えない Free プランの方など）は、ハンズオン用の拡張機能パッケージ [soracom-handson.mcpb](soracom-handson.mcpb) をダウンロードして、Claude Desktop の [設定] → [拡張機能] の画面にドラッグ＆ドロップし、インストールします。プロファイル名を聞かれたら `handson` のままにします。認証情報はパッケージに含まれておらず、(2) で保存したプロファイル handson のものが使われます。
 
 ### 2-3. アカウントデータを参照してみよう
 
